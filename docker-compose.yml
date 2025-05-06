@@ -1,0 +1,54 @@
+services:
+
+  # LLM management platform
+  ollama: 
+    image: ollama/ollama:${OLLAMA_DOCKER_TAG-latest}
+    container_name: ollama
+    volumes:
+      - ~/docker/ollama:/root/.ollama   
+      # for Mistral 7B model >> docker exec -it ollama ollama pull mistral
+      # for Mistral 7B_Q2K lightweight model >> docker exec -it ollama ollama pull mistral:7b-instruct-q2_K
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ports:
+      - "11434:11434"
+    tty: true
+    restart: unless-stopped
+    networks:
+      - docker_default
+
+  # Interactive UI to access ollama functionalities
+  open-webui: 
+    image: open-webui:gt1030  # lightweight custom build for 6.1 compute capability >> \home\autem-dev\open-webui\Dockerfile
+    #image: ghcr.io/open-webui/open-webui:dev-cuda # for 7+ compute capability
+    container_name: open-webui
+    volumes:
+      - /home/autem-dev/docker/owui:/app/backend/data
+      # - /mnt/c/Users/[your user]/Documents/Obsidian:/app/synced/obsidian # auto sync to WSL repo \\wsl.localhost\Ubuntu-22.04\mnt\c\Users\[your user]\Documents\Obsidian
+    depends_on:
+      - ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ports:
+      - "3000:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_SECRET_KEY=
+      - ENABLE_OPENAI=false
+    restart: unless-stopped
+    networks:
+      - docker_default
+
+networks:
+  docker_default:
+    external: true  # set to true if you're managing this network manually
