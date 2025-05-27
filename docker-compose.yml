@@ -6,14 +6,14 @@ services:
     container_name: ollama
     volumes:
       - ~/docker/ollama:/root/.ollama   
-      # for Mistral 7B model >> docker exec -it ollama ollama pull mistral
-      # for Mistral 7B_Q2K lightweight model >> docker exec -it ollama ollama pull mistral:7b-instruct-q2_K
+      # Mistral 7B lightweight model >> docker exec -it ollama ollama pull mistral
+      # Mistral 7B_Q2K lightweight model >> docker exec -it ollama ollama pull mistral:7b-instruct-q2_K
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: all
+              device_ids: ["0"] # count: all # =  all available GPUs VS GPU 0 as listed by nvidia-smi.
               capabilities: [gpu]
     ports:
       - "11434:11434"
@@ -22,10 +22,10 @@ services:
     networks:
       - docker_default
 
-  # Interactive UI to access ollama functionalities
+  # interactive UI to access ollama functionalities
   open-webui: 
-    image: open-webui:gt1030  # lightweight custom build for 6.1 compute capability >> \home\autem-dev\open-webui\Dockerfile
-    #image: ghcr.io/open-webui/open-webui:dev-cuda # for 7+ compute capability
+    #image: open-webui:gt1030  # lightweight build for compute capability 6.1 >> \home\autem-dev\open-webui\Dockerfile
+    image: ghcr.io/open-webui/open-webui:dev-cuda # for compute capability > 7+ 
     container_name: open-webui
     volumes:
       - /home/autem-dev/docker/owui:/app/backend/data
@@ -37,7 +37,7 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: all
+              device_ids: ["0"]
               capabilities: [gpu]
     ports:
       - "3000:8080"
@@ -49,6 +49,16 @@ services:
     networks:
       - docker_default
 
+# document processing and text extraction
+  tika:
+    image: apache/tika:latest-full
+    container_name: tika
+    restart: on-failure
+    ports:
+      - "9998:9998"
+    networks:
+      - docker_default
+    
 networks:
   docker_default:
     external: true  # set to true if you're managing this network manually
